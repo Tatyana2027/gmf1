@@ -70,3 +70,56 @@ const lessons = [
     speak: 'Нарисуй три момента своего дня. Покажи рисунки по порядку и скажи по-английски, что ты делаешь.'
   }
 ];
+
+const visuals = {
+  starter: ['👋','🙋','1️⃣','2️⃣','3️⃣','🔴','🔵','🟢'],
+  'unit-1': ['✏️','🖊️','📘','📏','🎒','📥','⬆️','⬇️'],
+  'unit-2': ['⚽','🚲','🪆','🪁','🧸','🚂'],
+  'unit-3': ['👃','👀','👂','💇','🙌','🦶','📏','🤏'],
+  'unit-4': ['🍗','🍞','🧀','🍇','🍎','🍦'],
+  'unit-5': ['🐄','🦆','🐑','🐎','🏃','🏊','🕊️','🧗'],
+  'unit-6': ['🛝','🛝','🌳','🪑','↩️','↔️','➡️'],
+  'unit-7': ['🦒','🏞️','🏪','🚌','🚗','🔢','🔢','🔢'],
+  'unit-8': ['👕','🩳','👒','🥾','🏇','🚶','🏊'],
+  'unit-9': ['⏰','🧼','🥣','🥪','🍽️','🛏️','🌅','🌇']
+};
+
+const numbers = {eleven: '11', twelve: '12', twenty: '20'};
+const photos = {
+  pencil: 'g-l9/img/pencil.png', pen: 'g-l9/img/pen.png', ruler: 'g-l9/img/ruler.png',
+  bread: '/gmf2/home/u2-l1/img/bread.jpg', cheese: '/gmf3/home/u4-l1/img/cheese.jpg',
+  apple: '/gmf3/home/u4-l5/img/fd_apples.jpg',
+  'ice cream': '/gmf3/home/u4-l5/img/fd_icecream.jpg',
+  horse: '/gmf2/home/u4-l4/img/ph_horse.jpg',
+  shorts: '/gmf2/home/u4-l4/img/ph_shorts.jpg',
+  swimming: '/gmf2/home/u1-l1/img/swimming.png',
+  book: '../phonics/pics/w_book.jpg', bike: '../phonics/pics/w_bike.jpg',
+  kite: '../phonics/pics/w_kite.jpg', train: '../phonics/pics/w_train.jpg',
+  nose: '../phonics/pics/w_nose.jpg', feet: '../phonics/pics/w_feet.jpg',
+  cow: '../phonics/pics/w_cow.jpg', sheep: '../phonics/pics/w_sheep.jpg',
+  slide: '../phonics/pics/w_slide.jpg', tree: '../phonics/pics/w_tree.jpg',
+  park: '../phonics/pics/w_park.jpg', shop: '../phonics/pics/w_shop.jpg',
+  bus: '../phonics/pics/w_bus.jpg', car: '../phonics/pics/w_car.jpg',
+  hat: '../phonics/pics/w_hat.jpg', boots: '../phonics/pics/w_boot.jpg',
+  zoo: '../phonics/pics/w_zoo.jpg', 'go to bed': '../phonics/pics/w_bed.jpg',
+  walking: '../phonics/pics/w_walk.jpg', red: '../phonics/pics/w_red.jpg',
+  blue: '../phonics/pics/w_blue.jpg', green: '../phonics/pics/w_green.jpg',
+  run: '/gmf2/home/u4-l4/img/k_run.jpg',
+  climb: '/gmf2/home/u4-l4/img/k_climb.jpg',
+  'have breakfast': '/gmf3/home/u4-test/img/t4_breakfast.jpg'
+};
+
+const songLines = [
+  ['Hello, hello! My name is Sam.', 'Red and blue and green.', 'One, two, three. Count with me!', 'Goodbye, goodbye, my friend!'],
+  ['Pencil, pencil, where are you?', 'On the book? Under the book?', 'Pencil, pencil, I can see.', 'In my bag! Here you are!'],
+  ['A bike and a train, a kite and a ball.', 'Is it a doll? Is it a bear?', 'My favourite toy is a teddy bear.', 'Happy birthday, my friend!'],
+  ['Touch your nose and touch your ears.', 'Open your eyes and clap your hands.', 'I’ve got big eyes and a little nose.', 'Now stand up and touch your toes!'],
+  ['I like cheese and I like bread.', 'Do you like grapes? Yes, I do!', 'An apple for me, ice cream for you.', 'Do you like apples? Yes, I do!'],
+  ['Can you see a duck? Yes, I can.', 'Ducks can swim and horses can run.', 'Can you see a sheep? Yes, I can.', 'Here on the farm we have some fun!'],
+  ['Where are you? Where are you?', 'I’m on the swing, here in the park.', 'Behind the tree, by the slide.', 'Come and find me where I hide!'],
+  ['There’s a zoo. There’s a shop.', 'There are two buses at the stop.', 'How many cars can you see?', 'One, two, three. Count with me!'],
+  ['What are you wearing today?', 'I’m wearing boots and a hat.', 'What are you doing today?', 'I’m walking, walking all the way!'],
+  ['I get up in the morning.', 'I have lunch in the day.', 'I have dinner in the evening.', 'Then I go to bed. Hooray!']
+];
+
+const bookPages = [4, 8, 18, 28, 40, 50, 60, 72, 82, 92];
