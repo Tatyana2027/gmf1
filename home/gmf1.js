@@ -1,7 +1,6 @@
 const content = document.querySelector('#content');
 const requested = new URLSearchParams(location.search).get('lesson');
-const lessonIndex = lessons.findIndex(item => item.id === requested);
-const lesson = lessons[lessonIndex];
+const lesson = lessons.find(item => item.id === requested);
 const lessonUrl = item => '?lesson=' + encodeURIComponent(item.id);
 
 function make(tag, text, classes) {
@@ -42,7 +41,12 @@ function copy(url, message, label = 'Скопировать ссылку на у
       await navigator.clipboard.writeText(new URL(url, location.href).href);
       message.textContent = 'Ссылка скопирована ✓';
     } catch {
-      message.textContent = 'Скопируй адрес урока из строки браузера.';
+      const field = make('input', '', 'field');
+      field.readOnly = true;
+      field.value = new URL(url, location.href).href;
+      field.setAttribute('aria-label', 'Адрес урока');
+      message.replaceChildren('Ссылка на урок: ', field);
+      field.select();
     }
   });
   node.setAttribute('aria-label', 'Скопировать ссылку на урок');
@@ -55,25 +59,30 @@ function renderCatalog() {
     make('p', requested ? 'Урок по этой ссылке не найден. Выбери раздел.' : 'Пропустил урок? Пройди его дома за 15–20 минут.', 'sub'));
   const catalog = make('nav', '', 'catalog');
   catalog.setAttribute('aria-label', 'Уроки Give Me Five! 1');
-  lessons.forEach((item, index) => {
+  lessonGroups.forEach((items, index) => {
     const details = make('details');
+    details.id = index ? 'u' + index : 'starter';
+    details.open = location.hash === '#' + details.id;
     const summary = make('summary');
-    const label = index ? 'Unit ' + index : 'Starter';
-    const text = make('span');
-    const name = make('span', item.title, 'unit-title');
-    name.lang = 'en';
-    text.append(name, make('span', '1 урок', 'unit-topic'));
-    summary.append(make('span', label, 'unit-label'), text, make('span', '⌄', 'arrow'));
-    const row = make('div', '', 'row');
-    const card = link('', lessonUrl(item), 'unit');
-    const intro = make('span');
-    intro.append(make('span', item.title, 'unit-title'),
-      make('span', item.topic + ' · ' + (index ? '10 заданий' : '7 заданий'), 'unit-topic'));
-    card.append(make('span', 'L1', 'unit-label'), intro, make('span', '→', 'arrow'));
-    const message = status();
-    message.classList.add('copy-status');
-    row.append(card, copy(lessonUrl(item), message, '🔗', 'btn ghost copy'));
-    details.append(summary, row, message);
+    const heading = make('span');
+    heading.append(make('span', units[index].title, 'unit-title'),
+      make('span', index ? '6 уроков + тест' : '3 урока', 'unit-topic'));
+    summary.append(make('span', index ? 'Unit ' + index : 'Starter', 'unit-label'),
+      heading, make('span', '⌄', 'arrow'));
+    details.append(summary);
+    for (const item of items) {
+      const row = make('div', '', 'row');
+      const card = link('', lessonUrl(item), 'unit');
+      const intro = make('span');
+      intro.append(make('span', item.title, 'unit-title'),
+        make('span', item.topic + ' · стр. ' + item.page, 'unit-topic'));
+      card.append(make('span', item.number === 'test' ? 'Тест' : 'L' + item.number, 'unit-label'),
+        intro, make('span', '→', 'arrow'));
+      const message = status();
+      message.classList.add('copy-status');
+      row.append(card, copy(lessonUrl(item), message, '🔗', 'btn ghost copy'));
+      details.append(row, message);
+    }
     catalog.append(details);
   });
   content.append(catalog, make('p', 'Прогресс сохраняется на этом устройстве.', 'foot'));
@@ -83,17 +92,30 @@ const steps = [
   ['words', 'Слова', 'Нажми на каждую карточку, послушай и повтори слово.'],
   ['listen', 'Послушай и найди', 'Послушай слово, найди подходящую картинку и нажми на неё.'],
   ['chant', 'Чант', 'Слушай и повторяй в ритме. Активная карточка подсвечивается.'],
-  ['song', 'Песня', 'Слушай строчки под ритм и повторяй. Нажми на строчку, чтобы услышать её отдельно.'],
+  ['song', 'Песня', 'Включи полную запись издательства и пой по учебнику.'],
   ['grammar', 'Потренируй фразы', 'Послушай примеры. Затем выбери подходящее слово или фразу.'],
   ['know', 'Знаю / не знаю', 'Посмотри на картинку и назови слово. Открой ответ и отметь, вспомнил ли ты его.'],
   ['memo', 'Мемо', 'Открывай по две карточки. Найди пары «картинка и слово».'],
   ['spell', 'Сложи слово', 'Послушай слово и нажимай на буквы по порядку.'],
   ['write', 'Напиши', 'Посмотри на картинку, впиши английское слово и проверь себя.'],
+  ['story', 'Прочитай историю', 'Послушай и прочитай короткий текст для домашней практики.'],
+  ['order', 'Что было сначала?', 'Нажимай на события в том порядке, в котором они происходят в истории.'],
+  ['phonics', 'Звуки', 'Послушай и прочитай слова. Повтори вслух.'],
   ['book', 'В учебнике', 'Поработай с книгой и тетрадью, затем отметь выполненные задания.']
 ];
-const starterSteps = ['words', 'listen', 'chant', 'song', 'grammar', 'memo', 'book'];
-const activeSteps = lessonIndex === 0 ? steps.filter(([key]) => starterSteps.includes(key)) : steps;
-const progressKey = lesson && 'gmf1:slides:' + lesson.id;
+const stepGroups = {
+  starter:['words','listen','chant','grammar','memo','spell','book'],
+  vocabulary:['words','listen','chant','song','grammar','know','memo','spell','write','book'],
+  grammar:['grammar','listen','know','spell','write','book'],
+  story:['story','order','grammar','know','spell','book'],
+  extension:['words','listen','grammar','know','spell','write','book'],
+  phonics:['story','phonics','spell','book'],
+  review:['words','listen','grammar','memo','spell','write','song','book'],
+  test:['listen','grammar','write']
+};
+const activeSteps = (stepGroups[lesson?.type] || []).map(key => steps.find(step => step[0] === key));
+// The new activities and vocabulary have their own progress records.
+const progressKey = lesson && 'gmf1:lessons-v3:' + lesson.id;
 let progress = {};
 try {
   const stored = JSON.parse(localStorage.getItem(progressKey));
@@ -114,10 +136,9 @@ function shuffle(items) {
 }
 
 function picture(word, describe = false) {
-  const index = lesson.words.indexOf(word);
-  const [english, russian] = word;
-  const icon = visuals[lesson.id][index];
+  const [english, russian, icon = ''] = word;
   const code = Array.from(icon.replace(/\ufe0f/g, ''), char => char.codePointAt(0).toString(16)).join('-');
+  if (!code) return make('span', english, 'diagram');
   const cdn = 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/' + code + '.png';
   const numeric = numbers[english];
   const positions = ['behind', 'next to', 'in front of', 'in', 'on', 'under'];
@@ -135,7 +156,8 @@ function picture(word, describe = false) {
   }
   const img = make('img', '', 'picture');
   img.alt = describe ? russian : '';
-  img.src = photos[english] || cdn;
+  img.loading = 'lazy';
+  img.src = (lesson.unit === 1 && english === 'crayon' ? 'g-l9/img/crayons.png' : photos[english]) || cdn;
   img.addEventListener('error', () => {
     if (img.getAttribute('src') !== cdn) {
       img.src = cdn;
@@ -163,11 +185,12 @@ function wordCard(word, showEnglish, showRussian, handler) {
 }
 
 let audioVersion = 0;
-let context;
+let lessonAudio;
 let timers = [];
 function stopAudio() {
   audioVersion++;
   window.speechSynthesis?.cancel();
+  lessonAudio?.pause();
   for (const timer of timers) { clearTimeout(timer); clearInterval(timer); }
   timers = [];
   document.querySelectorAll('.playing').forEach(node => node.classList.remove('playing'));
@@ -199,21 +222,6 @@ function say(text, message, finished, rate = .84, fallback = '') {
 function play(text, message, fallback) {
   stopAudio();
   say(text, message, undefined, .84, fallback);
-}
-
-function beat() {
-  if (!window.AudioContext) return;
-  context ||= new AudioContext();
-  context.resume().catch(() => {});
-  const note = context.createOscillator();
-  const volume = context.createGain();
-  const now = context.currentTime;
-  note.frequency.value = 440;
-  volume.gain.setValueAtTime(.045, now);
-  volume.gain.exponentialRampToValueAtTime(.001, now + .12);
-  note.connect(volume).connect(context.destination);
-  note.start();
-  note.stop(now + .13);
 }
 
 function words(root, done) {
@@ -276,52 +284,116 @@ function listen(root, done) {
   root.append(actions, grid, message);
 }
 
-function sequence(root, done, isSong) {
-  const entries = isSong ? songLines[lessonIndex] : lesson.words.map(([word]) => word);
+function sequence(root, done) {
   const message = status();
-  const grid = make('div', '', isSong ? '' : 'grid four');
-  const tempo = make('input');
-  tempo.type = 'range';
-  tempo.min = '65';
-  tempo.max = '110';
-  tempo.value = '84';
-  const tempoLabel = make('label', 'Темп ');
-  tempoLabel.append(tempo);
-  const cards = entries.map((entry, index) => {
-    const replay = () => play(entry, message);
-    const card = isSong ? button(entry, 'line', replay) : wordCard(lesson.words[index], true, false, replay);
-    grid.append(card);
-    return card;
-  });
-  const actions = make('div', '', 'actions');
-  function run(instrumental) {
+  const grid = make('div', '', 'grid four');
+  const cards = lesson.words.map(word => wordCard(word, true, false, () => play(word[0], message)));
+  grid.append(...cards);
+  const start = button('▶ Слушать и повторять', undefined, () => {
     const token = stopAudio();
-    if (isSong) {
-      beat();
-      timers.push(setInterval(beat, 60000 / Number(tempo.value)));
-    }
     let index = 0;
     function next() {
       if (token !== audioVersion) return;
       if (index) cards[index - 1].classList.remove('playing');
-      if (index === entries.length) {
-        stopAudio();
-        message.textContent = 'Молодец! Повтори ещё раз самостоятельно.';
+      if (index === cards.length) {
+        message.textContent = 'Повтори слова ещё раз самостоятельно.';
         done();
         return;
       }
       cards[index].classList.add('playing');
-      const phrase = entries[index++];
-      const later = delay => timers.push(setTimeout(next, delay));
-      if (instrumental) later(4 * 60000 / Number(tempo.value));
-      else say(phrase, message, () => later(isSong ? 480 : 350), isSong ? Number(tempo.value) / 105 : .84);
+      say(lesson.words[index++][0], message, () => timers.push(setTimeout(next, 400)));
     }
     next();
-  }
-  actions.append(button(isSong ? '▶ Петь' : '▶ Слушать и повторять', undefined, () => run(false)));
-  if (isSong) actions.append(button('🎤 Минусовка', 'btn ghost', () => run(true)), tempoLabel);
-  actions.append(button('Стоп', 'btn ghost', stopAudio));
+  });
+  const actions = make('div', '', 'actions');
+  actions.append(start, button('Стоп', 'btn ghost', stopAudio));
   root.append(actions, grid, message);
+}
+
+function song(root, done) {
+  const player = make('audio', '', 'lesson-audio');
+  player.controls = true;
+  player.preload = 'none';
+  player.hidden = lesson.type !== 'review';
+  lessonAudio = player;
+  const message = status();
+  const choose = make('input');
+  choose.type = 'file';
+  choose.accept = 'audio/*,.mp3,.m4a';
+  const label = make('label', 'Выбрать аудиофайл', 'book-task audio-file');
+  label.append(choose);
+  let localTrack;
+  if (lesson.type === 'review') {
+    player.src = wellDoneAudio;
+    root.append(make('p', 'Well done! · запись Macmillan'));
+  } else {
+    root.append(make('p', trackNotes[lesson.unit] || 'Pupil’s Book · первое задание на стр. ' + lesson.page));
+  }
+  const source = link(lesson.unit === 1 || lesson.type === 'review'
+    ? 'Официальные аудиоматериалы Macmillan' : 'Открыть учебник в Macmillan Education Everywhere',
+    lesson.unit === 1 || lesson.type === 'review' ? audioSamples : publisher, 'btn ghost');
+  source.target = '_blank';
+  source.rel = 'noopener';
+  choose.addEventListener('change', () => {
+    const file = choose.files[0];
+    if (!file) return;
+    if (localTrack) URL.revokeObjectURL(localTrack);
+    localTrack = URL.createObjectURL(file);
+    player.src = localTrack;
+    player.hidden = false;
+    message.textContent = 'Файл готов. Нажми Play, чтобы послушать.';
+  });
+  player.addEventListener('ended', () => {
+    message.textContent = 'Запись прослушана до конца.';
+    done();
+  });
+  player.addEventListener('error', () => { message.textContent = 'Запись не открылась. Попробуй другой аудиофайл.'; });
+  root.append(source);
+  if (lesson.unit === 2 && lesson.type !== 'review') {
+    const teacher = link('Открыть образец Unit 2 · стр. 18', unit2Sample, 'btn ghost');
+    teacher.target = '_blank';
+    teacher.rel = 'noopener';
+    root.append(teacher);
+  }
+  root.append(make('p', 'Если запись уже скачана или есть на диске, выбери её ниже. Файл останется на устройстве.'),
+    label, player, button('Я послушал песню в учебнике', 'btn ghost', () => {
+      message.textContent = 'Песня отмечена.';
+      done();
+    }), message);
+}
+
+function story(root, done, phonics = false) {
+  const message = status();
+  const heard = new Set();
+  const lines = phonics ? lesson.words.map(([word]) => word) : lesson.story;
+  lines.forEach((text, index) => root.append(button('🔊 ' + text, 'line', () => {
+    play(text, message);
+    heard.add(index);
+    if (heard.size === lines.length) done();
+  })));
+  root.append(message);
+}
+
+function order(root, done) {
+  const message = status();
+  const ordered = make('ol', '', 'ordered-story');
+  const choices = make('div');
+  let next = 0;
+  for (const text of shuffle(lesson.story)) {
+    const choice = button(text, 'line', () => {
+      if (text !== lesson.story[next]) {
+        choice.classList.add('wrong-option');
+        message.textContent = 'Это событие было в другом месте. Попробуй ещё раз.';
+        return;
+      }
+      choice.hidden = true;
+      ordered.append(make('li', text));
+      message.textContent = 'Верно!';
+      if (++next === lesson.story.length) done();
+    });
+    choices.append(choice);
+  }
+  root.append(ordered, choices, message);
 }
 
 function grammar(root, done) {
@@ -381,9 +453,9 @@ function know(root, done) {
 
 function memo(root, done) {
   const game = make('div', '', 'grid four');
-  const count = make('span', 'Пары: 0 / 6', 'pill');
+  const selection = shuffle(lesson.words).slice(0, 6);
+  const count = make('span', 'Пары: 0 / ' + selection.length, 'pill');
   const message = status();
-  const selection = lesson.words.slice(0, 6);
   let open = [];
   let matches = 0;
   let lock = false;
@@ -426,7 +498,7 @@ function memo(root, done) {
 }
 
 function spell(root, done) {
-  const selection = lesson.words.filter(([word]) => /^[a-z]+$/i.test(word)).slice(0, 3);
+  const selection = lesson.words;
   const area = make('div', '', 'study');
   const message = status();
   let index = 0;
@@ -438,19 +510,27 @@ function spell(root, done) {
       return;
     }
     const word = selection[index];
-    const letters = word[0].toLowerCase();
-    const display = make('p', Array.from(letters, () => '＿').join(' '), 'pill');
+    const letters = Array.from(word[0].toLowerCase()).filter(letter => /\p{L}/u.test(letter));
+    const masked = position => {
+      let letterIndex = 0;
+      return Array.from(word[0], letter => /\p{L}/u.test(letter) && letterIndex++ >= position ? '＿' : letter).join('');
+    };
+    const display = make('p', masked(0), 'pill');
+    display.setAttribute('aria-live', 'polite');
     const choices = make('div', '', 'actions');
     let position = 0;
     for (const letter of shuffle(letters)) {
       const tile = button(letter, undefined, () => {
         if (letter !== letters[position]) {
-          message.textContent = 'Нужна другая буква.';
+          for (const choice of choices.children) choice.classList.remove('wrong-option');
+          tile.classList.add('wrong-option');
+          message.textContent = 'Здесь нужна «' + letters[position] + '». Найди эту букву.';
           return;
         }
+        for (const choice of choices.children) choice.classList.remove('wrong-option');
         tile.disabled = true;
         position++;
-        display.textContent = letters.slice(0, position) + ' ' + '＿'.repeat(letters.length - position);
+        display.textContent = masked(position);
         message.textContent = 'Верно!';
         if (position === letters.length) {
           index++;
@@ -467,7 +547,7 @@ function spell(root, done) {
 function write(root, done) {
   const grid = make('div', '', 'grid two');
   const message = status();
-  const selected = lesson.words.slice(0, 6);
+  const selected = lesson.type === 'vocabulary' ? lesson.words : lesson.words.slice(0, 6);
   const correct = new Set();
   const normalize = text => text.trim().toLowerCase().replace(/\s+/g, ' ');
   for (const word of selected) {
@@ -480,28 +560,59 @@ function write(root, done) {
     input.lang = 'en';
     input.required = true;
     const check = make('button', 'Проверить', 'btn primary');
+    const feedback = status();
+    feedback.id = 'spelling-' + selected.indexOf(word);
+    feedback.classList.add('spelling-feedback');
+    input.setAttribute('aria-describedby', feedback.id);
+    input.addEventListener('input', () => {
+      card.classList.remove('bad');
+      input.removeAttribute('aria-invalid');
+      feedback.replaceChildren();
+    });
     card.addEventListener('submit', event => {
       event.preventDefault();
       if (normalize(input.value) !== normalize(word[0])) {
-        message.textContent = 'Проверь написание и попробуй снова.';
+        const typed = normalize(input.value);
+        const expected = normalize(word[0]);
+        let at = 0;
+        while (typed[at] && typed[at] === expected[at]) at++;
+        const correction = make('strong', '', 'correction');
+        correction.lang = 'en';
+        correction.append(expected.slice(0, at), make('mark', expected[at] || ''), expected.slice(at + 1));
+        const hint = !expected[at] ? 'Убери лишние буквы. ' : expected[at] === ' ' ? 'Здесь нужен пробел. ' : 'Обрати внимание на выделенную букву. ';
+        feedback.replaceChildren(hint, 'Правильно: ', correction, '. Напиши ещё раз.');
+        card.classList.add('bad');
+        input.setAttribute('aria-invalid', 'true');
+        input.focus({preventScroll:true});
+        const original = input.value;
+        const start = original.length - original.trimStart().length + at;
+        input.setSelectionRange(start, start + (typed[at] ? 1 : 0));
         return;
       }
+      card.classList.remove('bad');
       card.classList.add('good');
+      feedback.textContent = '✓ Верно!';
+      input.removeAttribute('aria-invalid');
       input.readOnly = true;
       check.disabled = true;
       correct.add(word);
       message.textContent = 'Верно: ' + correct.size + ' / ' + selected.length;
       if (correct.size === selected.length) done();
     });
-    card.append(picture(word, true), input, check);
+    card.append(picture(word, true), input, feedback, check);
     grid.append(card);
   }
   root.append(grid, message);
 }
 
 function book(root, done) {
-  const checklist = [
-    ['Pupil’s Book · стр. ' + bookPages[lessonIndex], 'Найди на странице знакомые картинки. Покажи их и назови не меньше трёх слов по-английски.'],
+  const checklist = lesson.unit === 2 && lesson.number === 1 ? [
+    ['Pupil’s Book · стр. 18, задание 1', 'Послушай песню целиком. Показывай игрушки на картинке и пой.'],
+    ['Pupil’s Book · стр. 18, задание 2', 'Прочитай слова, наклей 10 стикеров и повтори чант.'],
+    ['Activity Book · стр. 16', 'Найди игрушки и раскрась их по инструкции.'],
+    ['Activity Book · стр. 25', 'Выполни задания на написание слов.']
+  ] : [
+    ['Pupil’s Book · стр. ' + lesson.page, 'Найди на странице знакомые картинки. Покажи их и назови не меньше трёх слов по-английски.'],
     ['В тетради', 'Нарисуй два предмета или действия из урока и подпиши их по-английски.'],
     ['Скажи вслух', lesson.speak]
   ];
@@ -522,8 +633,7 @@ function book(root, done) {
   });
 }
 
-const activities = {words, listen, chant:sequence, song:(root, done) => sequence(root, done, true),
-  grammar, know, memo, spell, write, book};
+const activities = {words, listen, chant:sequence, song, grammar, know, memo, spell, write, book, story, order, phonics:(root, done) => story(root, done, true)};
 
 function renderLesson() {
   document.body.classList.add('lesson-mode');
@@ -572,8 +682,8 @@ function renderLesson() {
   const coverMessage = status();
   const coverActions = make('div', '', 'actions');
   coverActions.append(button('Начать →', undefined, () => show(1)), copy(lessonUrl(lesson), coverMessage));
-  cover.inner.append(make('p', 'Give Me Five! 1 · ' + (lessonIndex ? 'Unit ' + lessonIndex : 'Starter'), 'sub'),
-    make('span', '📖 Pupil’s Book · стр. ' + bookPages[lessonIndex], 'pill'), plan, coverActions, coverMessage);
+  cover.inner.append(make('p', 'Give Me Five! 1 · ' + (lesson.unit ? 'Unit ' + lesson.unit : 'Starter') + ' · ' + (lesson.number === 'test' ? 'Test' : 'Lesson ' + lesson.number), 'sub'),
+    make('span', '📖 Pupil’s Book · стр. ' + lesson.page, 'pill'), plan, coverActions, coverMessage);
   const practice = activeSteps.map(([key, title, hint], index) => {
     const item = slide(title, '', index + 1);
     item.inner.append(make('p', hint, 'hint'));
@@ -591,13 +701,14 @@ function renderLesson() {
   const stars = make('div', '', 'stars');
   stars.setAttribute('aria-hidden', 'true');
   finish.inner.prepend(stars);
-  const finishHint = make('p', 'Выполни хотя бы пять заданий и отметь прохождение урока.');
+  const required = lesson.type === 'test' ? practice.length : Math.min(5, practice.length);
+  const finishHint = make('p', 'Выполни заданий для отметки: ' + required + ' из ' + practice.length + '.');
   const finishMessage = status();
   const progressCount = status();
   const finishActions = make('div', '', 'actions');
   const completeLesson = button('🎉 Я сделал!', undefined, () => {
-    if (practice.filter(({key}) => progress[key]).length < 5) {
-      finishMessage.textContent = 'Выполни хотя бы пять заданий, чтобы отметить урок.';
+    if (practice.filter(({key}) => progress[key]).length < required) {
+      finishMessage.textContent = 'Сначала выполни необходимое число заданий.';
       return;
     }
     progress.finished = true;
@@ -610,7 +721,7 @@ function renderLesson() {
     completeLesson.disabled = true;
   }
   finishActions.append(completeLesson);
-  finish.inner.append(progressCount, finishHint, finishActions, finishMessage, link('К списку уроков', './', 'btn ghost'));
+  finish.inner.append(progressCount, finishHint, finishActions, finishMessage, link('К списку уроков', './#' + (lesson.unit ? 'u' + lesson.unit : 'starter'), 'btn ghost'));
 
   const panels = [cover, ...practice, finish];
   let current = 0;
