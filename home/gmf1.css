@@ -123,3 +123,15 @@ button.line:focus-visible { outline-offset:-2px; }
   .top .brand { padding-inline:6px; font-size:.68rem; }
   .dots { flex-shrink:0; }
 }
+.spelling-feedback { color:#9a2439; font-size:.9rem; margin:0; min-height:0; }
+.spelling-feedback:empty { display:none; }
+.good .spelling-feedback { color:#17643e; }
+.correction { color:#212940; }
+.correction mark { background:#ffd5da; color:#8d1832; border-radius:3px; padding:0 1px; }
+.field[aria-invalid=true] { outline:2px solid #a82944; }
+.wrong-option { background:#aa3047; color:white; }
+.lesson-audio { display:block; width:min(100%,440px); margin:12px auto; }
+.audio-file { max-width:440px; margin:12px auto; }
+.audio-file input { display:block; max-width:100%; margin-top:8px; }
+.ordered-story { text-align:left; }
+.slide h1:focus,.slide h2:focus { outline:none; }
