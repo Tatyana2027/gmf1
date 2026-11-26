@@ -1,163 +1,675 @@
-const title = document.querySelector('#title');
-const intro = document.querySelector('#intro');
 const content = document.querySelector('#content');
-const back = document.querySelector('#back');
-const requestedLesson = new URLSearchParams(location.search).get('lesson');
-const lesson = lessons.find(item => item.id === requestedLesson);
+const requested = new URLSearchParams(location.search).get('lesson');
+const lessonIndex = lessons.findIndex(item => item.id === requested);
+const lesson = lessons[lessonIndex];
+const lessonUrl = item => '?lesson=' + encodeURIComponent(item.id);
 
-function make(tag, value, className) {
-  const element = document.createElement(tag);
-  if (value) element.textContent = value;
-  if (className) element.className = className;
-  return element;
+function make(tag, text, classes) {
+  const node = document.createElement(tag);
+  if (text) node.textContent = text;
+  if (classes) node.className = classes;
+  return node;
 }
 
-function lessonUrl(id) {
-  return '?lesson=' + encodeURIComponent(id);
+function button(text, classes = 'btn primary', handler) {
+  const node = make('button', text, classes);
+  node.type = 'button';
+  if (handler) node.addEventListener('click', handler);
+  return node;
+}
+
+function link(text, href, classes) {
+  const node = make('a', text, classes);
+  node.href = href;
+  return node;
+}
+
+function brand() {
+  const node = link('', './', 'brand');
+  node.append(make('b', 'О.К.С.Ф.О.Р.Д'), ' · урок дома');
+  return node;
+}
+
+function status() {
+  const node = make('p', '', 'msg');
+  node.setAttribute('role', 'status');
+  return node;
+}
+
+function copy(url, message, label = 'Скопировать ссылку на урок', classes = 'btn ghost') {
+  const node = button(label, classes, async () => {
+    try {
+      await navigator.clipboard.writeText(new URL(url, location.href).href);
+      message.textContent = 'Ссылка скопирована ✓';
+    } catch {
+      message.textContent = 'Скопируй адрес урока из строки браузера.';
+    }
+  });
+  node.setAttribute('aria-label', 'Скопировать ссылку на урок');
+  return node;
 }
 
 function renderCatalog() {
-  if (requestedLesson !== null) {
-    intro.textContent = 'Урок по этой ссылке не найден. Выбери урок из списка.';
-  }
-  const list = make('nav', '', 'catalog');
-  list.setAttribute('aria-label', 'Уроки Give Me Five! 1');
+  const header = document.querySelector('header');
+  header.replaceChildren(brand(), make('h1', 'Give Me Five! 1'),
+    make('p', requested ? 'Урок по этой ссылке не найден. Выбери раздел.' : 'Пропустил урок? Пройди его дома за 15–20 минут.', 'sub'));
+  const catalog = make('nav', '', 'catalog');
+  catalog.setAttribute('aria-label', 'Уроки Give Me Five! 1');
   lessons.forEach((item, index) => {
-    const link = make('a', '', 'unit');
-    link.href = lessonUrl(item.id);
-    const description = make('span');
+    const details = make('details');
+    const summary = make('summary');
+    const label = index ? 'Unit ' + index : 'Starter';
+    const text = make('span');
     const name = make('span', item.title, 'unit-title');
     name.lang = 'en';
-    description.append(name, make('span', item.topic, 'unit-topic'));
-    const arrow = make('span', '→');
-    arrow.setAttribute('aria-hidden', 'true');
-    link.append(make('span', index === 0 ? 'Starter' : 'Unit ' + index, 'unit-label'), description, arrow);
-    list.append(link);
+    text.append(name, make('span', '1 урок', 'unit-topic'));
+    summary.append(make('span', label, 'unit-label'), text, make('span', '⌄', 'arrow'));
+    const row = make('div', '', 'row');
+    const card = link('', lessonUrl(item), 'unit');
+    const intro = make('span');
+    intro.append(make('span', item.title, 'unit-title'),
+      make('span', item.topic + ' · ' + (index ? '10 заданий' : '7 заданий'), 'unit-topic'));
+    card.append(make('span', 'L1', 'unit-label'), intro, make('span', '→', 'arrow'));
+    const message = status();
+    message.classList.add('copy-status');
+    row.append(card, copy(lessonUrl(item), message, '🔗', 'btn ghost copy'));
+    details.append(summary, row, message);
+    catalog.append(details);
   });
-  content.append(list);
+  content.append(catalog, make('p', 'Прогресс сохраняется на этом устройстве.', 'foot'));
 }
 
-const soundStatus = make('p');
-soundStatus.setAttribute('role', 'status');
+const steps = [
+  ['words', 'Слова', 'Нажми на каждую карточку, послушай и повтори слово.'],
+  ['listen', 'Послушай и найди', 'Послушай слово, найди подходящую картинку и нажми на неё.'],
+  ['chant', 'Чант', 'Слушай и повторяй в ритме. Активная карточка подсвечивается.'],
+  ['song', 'Песня', 'Слушай строчки под ритм и повторяй. Нажми на строчку, чтобы услышать её отдельно.'],
+  ['grammar', 'Потренируй фразы', 'Послушай примеры. Затем выбери подходящее слово или фразу.'],
+  ['know', 'Знаю / не знаю', 'Посмотри на картинку и назови слово. Открой ответ и отметь, вспомнил ли ты его.'],
+  ['memo', 'Мемо', 'Открывай по две карточки. Найди пары «картинка и слово».'],
+  ['spell', 'Сложи слово', 'Послушай слово и нажимай на буквы по порядку.'],
+  ['write', 'Напиши', 'Посмотри на картинку, впиши английское слово и проверь себя.'],
+  ['book', 'В учебнике', 'Поработай с книгой и тетрадью, затем отметь выполненные задания.']
+];
+const starterSteps = ['words', 'listen', 'chant', 'song', 'grammar', 'memo', 'book'];
+const activeSteps = lessonIndex === 0 ? steps.filter(([key]) => starterSteps.includes(key)) : steps;
+const progressKey = lesson && 'gmf1:slides:' + lesson.id;
+let progress = {};
+try {
+  const stored = JSON.parse(localStorage.getItem(progressKey));
+  if (stored && typeof stored === 'object') progress = stored;
+} catch {}
 
-function audioCard([english, russian]) {
-  const word = make('span', english);
-  word.lang = 'en';
-  const translation = make('small', russian);
-  if (!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) {
-    const text = make('div');
-    text.append(word, translation);
-    soundStatus.textContent = 'Озвучка недоступна в этом браузере. Прочитай слова вслух.';
-    return text;
+function save() {
+  try { localStorage.setItem(progressKey, JSON.stringify(progress)); } catch {}
+}
+
+function shuffle(items) {
+  const result = [...items];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
   }
-  const button = make('button');
-  button.type = 'button';
-  button.append('🔊 ', word, translation);
-  button.addEventListener('click', () => {
-    speechSynthesis.cancel();
-    soundStatus.textContent = '';
-    const voice = new SpeechSynthesisUtterance(english);
-    voice.lang = 'en-GB';
-    voice.rate = 0.82;
-    voice.voice = speechSynthesis.getVoices().find(item => item.lang === 'en-GB')
-      || speechSynthesis.getVoices().find(item => item.lang.startsWith('en-'))
-      || null;
-    voice.onerror = event => {
-      if (event.error !== 'canceled' && event.error !== 'interrupted') {
-        soundStatus.textContent = 'Не удалось включить озвучку. Прочитай фразу вслух.';
-      }
-    };
-    speechSynthesis.speak(voice);
-  });
-  return button;
+  return result;
 }
 
-function practiceSection(label) {
-  const section = make('section', '', 'card');
-  section.append(make('h2', label));
-  content.append(section);
-  return section;
-}
-
-function questionCard([prompt, choices, correctIndex], onAnswer) {
-  const field = make('fieldset', '', 'question');
-  const options = make('div', '', 'choices');
-  const feedback = make('p', '', 'feedback');
-  feedback.setAttribute('role', 'status');
-  choices.forEach((choice, index) => {
-    const button = make('button', choice);
-    button.type = 'button';
-    button.lang = /^[A-Za-z]/.test(choice) ? 'en' : 'ru';
-    button.setAttribute('aria-pressed', 'false');
-    button.addEventListener('click', () => {
-      for (const option of options.children) option.setAttribute('aria-pressed', String(option === button));
-      const correct = index === correctIndex;
-      feedback.textContent = correct ? 'Верно!' : 'Попробуй ещё раз.';
-      feedback.className = 'feedback ' + (correct ? 'correct' : 'retry');
-      onAnswer(correct);
-    });
-    options.append(button);
-  });
-  field.append(make('legend', prompt), options, feedback);
-  return field;
-}
-
-function renderLesson(item) {
-  back.href = './';
-  back.textContent = '← Все уроки GMF1';
-  title.textContent = item.title;
-  title.lang = 'en';
-  document.title = item.title + ' · Give Me Five! 1';
-  intro.textContent = item.topic + ' · 15–20 минут';
-
-  const words = make('div', '', 'words');
-  words.append(...item.words.map(audioCard));
-  practiceSection('1. Послушай и повтори').append(
-    make('p', 'Послушай каждое слово и повтори его два раза.'), words
-  );
-
-  const dialogue = make('div', '', 'dialogue');
-  dialogue.append(...item.dialogue.map(audioCard));
-  practiceSection('2. Потренируй фразы').append(
-    make('p', 'Послушай фразы и прочитай их вслух. Затем попробуй произнести их, не глядя на текст.'),
-    dialogue, soundStatus
-  );
-
-  const quiz = practiceSection('3. Проверь себя');
-  const quizResult = make('p');
-  quizResult.setAttribute('role', 'status');
-  const results = item.questions.map(() => false);
-  item.questions.forEach((question, index) => {
-    quiz.append(questionCard(question, correct => {
-      results[index] = correct;
-      quizResult.textContent = results.every(Boolean) ? 'Все ответы верны. Переходи к устному заданию!' : '';
-    }));
-  });
-  quiz.append(quizResult);
-
-  const oral = practiceSection('4. Скажи сам');
-  const completed = make('button', 'Я сделал устное задание', 'primary');
-  completed.type = 'button';
-  const status = make('p', '', 'feedback correct');
-  status.setAttribute('role', 'status');
-  completed.addEventListener('click', () => {
-    status.textContent = results.every(Boolean)
-      ? 'Отлично! Ты закончил урок.'
-      : 'Устное задание готово. Чтобы закончить урок, ответь верно на все вопросы выше.';
-  });
-  quiz.addEventListener('click', () => {
-    if (status.textContent) {
-      status.textContent = results.every(Boolean)
-        ? 'Отлично! Ты закончил урок.'
-        : 'Устное задание готово. Чтобы закончить урок, ответь верно на все вопросы выше.';
+function picture(word, describe = false) {
+  const index = lesson.words.indexOf(word);
+  const [english, russian] = word;
+  const icon = visuals[lesson.id][index];
+  const code = Array.from(icon.replace(/\ufe0f/g, ''), char => char.codePointAt(0).toString(16)).join('-');
+  const cdn = 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/' + code + '.png';
+  const numeric = numbers[english];
+  const positions = ['behind', 'next to', 'in front of', 'in', 'on', 'under'];
+  if (numeric || english === 'swing' || positions.includes(english)) {
+    const node = make('span', numeric, 'diagram');
+    node.setAttribute('role', 'img');
+    node.setAttribute('aria-label', describe ? russian : 'Картинка');
+    if (!numeric) {
+      const art = make('span', '', 'position-art');
+      art.classList.add(english === 'swing' ? 'swing' : 'position-' + positions.indexOf(english));
+      art.append(make('i'), make('b'));
+      node.append(art);
     }
+    return node;
+  }
+  const img = make('img', '', 'picture');
+  img.alt = describe ? russian : '';
+  img.src = photos[english] || cdn;
+  img.addEventListener('error', () => {
+    if (img.getAttribute('src') !== cdn) {
+      img.src = cdn;
+      return;
+    }
+    const fallback = make('span', icon, 'diagram');
+    if (describe) fallback.setAttribute('aria-label', russian);
+    else fallback.setAttribute('aria-hidden', 'true');
+    img.replaceWith(fallback);
   });
-  oral.append(make('p', item.speak), completed, status);
-  const next = lessons[lessons.indexOf(item) + 1];
-  const nextLink = make('a', next ? 'Следующий урок →' : 'К списку уроков →');
-  nextLink.href = next ? lessonUrl(next.id) : './';
-  content.append(nextLink);
+  return img;
 }
 
-if (lesson) renderLesson(lesson);
+function wordCard(word, showEnglish, showRussian, handler) {
+  const card = button('', 'card', handler);
+  if (!showEnglish) card.setAttribute('aria-label', word[1]);
+  card.append(picture(word, !showEnglish));
+  if (showEnglish) {
+    const text = make('span', word[0]);
+    text.lang = 'en';
+    card.append(text);
+  }
+  if (showRussian) card.append(make('small', word[1]), make('span', '🔊', 'sound-icon'));
+  return card;
+}
+
+let audioVersion = 0;
+let context;
+let timers = [];
+function stopAudio() {
+  audioVersion++;
+  window.speechSynthesis?.cancel();
+  for (const timer of timers) { clearTimeout(timer); clearInterval(timer); }
+  timers = [];
+  document.querySelectorAll('.playing').forEach(node => node.classList.remove('playing'));
+  return audioVersion;
+}
+
+function say(text, message, finished, rate = .84, fallback = '') {
+  const unavailable = 'Озвучка недоступна. ' + (fallback || 'Прочитай текст вслух.');
+  if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) {
+    message.textContent = unavailable;
+    finished?.();
+    return;
+  }
+  const current = audioVersion;
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'en-GB';
+  utterance.rate = rate;
+  utterance.onend = () => { if (current === audioVersion) finished?.(); };
+  utterance.onerror = event => {
+    if (current !== audioVersion) return;
+    if (event.error !== 'canceled' && event.error !== 'interrupted') {
+      message.textContent = unavailable;
+      finished?.();
+    }
+  };
+  speechSynthesis.speak(utterance);
+}
+
+function play(text, message, fallback) {
+  stopAudio();
+  say(text, message, undefined, .84, fallback);
+}
+
+function beat() {
+  if (!window.AudioContext) return;
+  context ||= new AudioContext();
+  context.resume().catch(() => {});
+  const note = context.createOscillator();
+  const volume = context.createGain();
+  const now = context.currentTime;
+  note.frequency.value = 440;
+  volume.gain.setValueAtTime(.045, now);
+  volume.gain.exponentialRampToValueAtTime(.001, now + .12);
+  note.connect(volume).connect(context.destination);
+  note.start();
+  note.stop(now + .13);
+}
+
+function words(root, done) {
+  const heard = new Set(progress.heard || []);
+  const grid = make('div', '', 'grid');
+  const message = status();
+  lesson.words.forEach((word, index) => {
+    const card = wordCard(word, true, true, () => {
+      play(word[0], message);
+      heard.add(index);
+      progress.heard = [...heard];
+      save();
+      card.classList.add('good');
+      if (heard.size === lesson.words.length) done();
+    });
+    if (heard.has(index)) card.classList.add('good');
+    grid.append(card);
+  });
+  root.append(grid, message);
+}
+
+function listen(root, done) {
+  const queue = shuffle(lesson.words);
+  const grid = make('div', '', 'grid four');
+  const message = status();
+  const count = make('span', 'Верно: 0 / ' + queue.length, 'pill');
+  let index = 0;
+  let started = false;
+  const playWord = button('▶ Играть', undefined, () => {
+    started = true;
+    message.textContent = '';
+    play(queue[index][0], message, 'Найди: ' + queue[index][0]);
+    playWord.textContent = '▶ Повторить';
+  });
+  const options = shuffle(lesson.words);
+  options.forEach(word => {
+    const card = wordCard(word, false, false, () => {
+      if (!started || index === queue.length) return;
+      if (word !== queue[index]) {
+        message.textContent = 'Попробуй ещё раз.';
+        return;
+      }
+      card.disabled = true;
+      card.classList.add('good');
+      index++;
+      count.textContent = 'Верно: ' + index + ' / ' + queue.length;
+      if (index === queue.length) {
+        playWord.disabled = true;
+        message.textContent = 'Все картинки найдены!';
+        done();
+      } else {
+        message.textContent = 'Верно! Слушай следующее слово.';
+        play(queue[index][0], message, 'Найди: ' + queue[index][0]);
+      }
+    });
+    grid.append(card);
+  });
+  const actions = make('div', '', 'actions');
+  actions.append(playWord, count);
+  root.append(actions, grid, message);
+}
+
+function sequence(root, done, isSong) {
+  const entries = isSong ? songLines[lessonIndex] : lesson.words.map(([word]) => word);
+  const message = status();
+  const grid = make('div', '', isSong ? '' : 'grid four');
+  const tempo = make('input');
+  tempo.type = 'range';
+  tempo.min = '65';
+  tempo.max = '110';
+  tempo.value = '84';
+  const tempoLabel = make('label', 'Темп ');
+  tempoLabel.append(tempo);
+  const cards = entries.map((entry, index) => {
+    const replay = () => play(entry, message);
+    const card = isSong ? button(entry, 'line', replay) : wordCard(lesson.words[index], true, false, replay);
+    grid.append(card);
+    return card;
+  });
+  const actions = make('div', '', 'actions');
+  function run(instrumental) {
+    const token = stopAudio();
+    if (isSong) {
+      beat();
+      timers.push(setInterval(beat, 60000 / Number(tempo.value)));
+    }
+    let index = 0;
+    function next() {
+      if (token !== audioVersion) return;
+      if (index) cards[index - 1].classList.remove('playing');
+      if (index === entries.length) {
+        stopAudio();
+        message.textContent = 'Молодец! Повтори ещё раз самостоятельно.';
+        done();
+        return;
+      }
+      cards[index].classList.add('playing');
+      const phrase = entries[index++];
+      const later = delay => timers.push(setTimeout(next, delay));
+      if (instrumental) later(4 * 60000 / Number(tempo.value));
+      else say(phrase, message, () => later(isSong ? 480 : 350), isSong ? Number(tempo.value) / 105 : .84);
+    }
+    next();
+  }
+  actions.append(button(isSong ? '▶ Петь' : '▶ Слушать и повторять', undefined, () => run(false)));
+  if (isSong) actions.append(button('🎤 Минусовка', 'btn ghost', () => run(true)), tempoLabel);
+  actions.append(button('Стоп', 'btn ghost', stopAudio));
+  root.append(actions, grid, message);
+}
+
+function grammar(root, done) {
+  const examples = make('div');
+  const quiz = make('div');
+  const message = status();
+  lesson.dialogue.forEach(([english, russian]) => {
+    const line = button('🔊 ' + english, 'line', () => play(english, message));
+    line.title = russian;
+    examples.append(line);
+  });
+  const correct = new Set();
+  lesson.questions.forEach(([prompt, choices, answer], index) => {
+    const question = make('div');
+    const actions = make('div', '', 'actions');
+    question.append(make('p', prompt), actions);
+    for (const [i, choice] of choices.entries()) {
+      actions.append(button(choice, 'btn ghost', () => {
+        if (i !== answer) {
+          message.textContent = 'Попробуй ещё раз.';
+          return;
+        }
+        correct.add(index);
+        for (const option of actions.children) option.disabled = true;
+        message.textContent = 'Верно!';
+        if (correct.size === lesson.questions.length) done();
+      }));
+    }
+    quiz.append(question);
+  });
+  root.append(examples, quiz, message);
+}
+
+function know(root, done) {
+  const area = make('div', '', 'study');
+  const message = status();
+  let index = 0;
+  let remembered = 0;
+  function draw() {
+    area.replaceChildren();
+    if (index === lesson.words.length) {
+      message.textContent = 'Вспомнил: ' + remembered + ' из ' + index + '.';
+      done();
+      return;
+    }
+    const word = lesson.words[index];
+    area.append(wordCard(word, false, false, () => {
+      play(word[0], message);
+      const actions = make('div', '', 'actions');
+      actions.append(button('Знаю', undefined, () => { remembered++; index++; draw(); }),
+        button('Не знаю', 'btn ghost', () => { index++; draw(); }));
+      area.replaceChildren(wordCard(word, true, true, () => play(word[0], message)), actions);
+    }), make('p', 'Нажми, чтобы открыть ответ.'));
+  }
+  root.append(button('Начать', undefined, event => { event.currentTarget.hidden = true; draw(); }), area, message);
+}
+
+function memo(root, done) {
+  const game = make('div', '', 'grid four');
+  const count = make('span', 'Пары: 0 / 6', 'pill');
+  const message = status();
+  const selection = lesson.words.slice(0, 6);
+  let open = [];
+  let matches = 0;
+  let lock = false;
+  const start = button('Играть', undefined, () => {
+    start.disabled = true;
+    shuffle(selection.flatMap(word => [{word, text: true}, {word, text: false}])).forEach(item => {
+      const tile = button('?', 'card', () => {
+        if (lock || tile.disabled) return;
+        tile.replaceChildren(item.text ? make('span', item.word[0]) : picture(item.word, true));
+        tile.disabled = true;
+        open.push({item, tile});
+        if (open.length !== 2) return;
+        if (open[0].item.word === open[1].item.word) {
+          for (const entry of open) entry.tile.classList.add('good');
+          open = [];
+          matches++;
+          count.textContent = 'Пары: ' + matches + ' / ' + selection.length;
+          if (matches === selection.length) {
+            message.textContent = 'Все пары найдены!';
+            done();
+          }
+          return;
+        }
+        lock = true;
+        setTimeout(() => {
+          for (const entry of open) {
+            entry.tile.textContent = '?';
+            entry.tile.disabled = false;
+          }
+          open = [];
+          lock = false;
+        }, 750);
+      });
+      game.append(tile);
+    });
+  });
+  const actions = make('div', '', 'actions');
+  actions.append(start, count);
+  root.append(actions, game, message);
+}
+
+function spell(root, done) {
+  const selection = lesson.words.filter(([word]) => /^[a-z]+$/i.test(word)).slice(0, 3);
+  const area = make('div', '', 'study');
+  const message = status();
+  let index = 0;
+  function draw() {
+    area.replaceChildren();
+    if (index === selection.length) {
+      message.textContent = 'Все слова собраны!';
+      done();
+      return;
+    }
+    const word = selection[index];
+    const letters = word[0].toLowerCase();
+    const display = make('p', Array.from(letters, () => '＿').join(' '), 'pill');
+    const choices = make('div', '', 'actions');
+    let position = 0;
+    for (const letter of shuffle(letters)) {
+      const tile = button(letter, undefined, () => {
+        if (letter !== letters[position]) {
+          message.textContent = 'Нужна другая буква.';
+          return;
+        }
+        tile.disabled = true;
+        position++;
+        display.textContent = letters.slice(0, position) + ' ' + '＿'.repeat(letters.length - position);
+        message.textContent = 'Верно!';
+        if (position === letters.length) {
+          index++;
+          draw();
+        }
+      });
+      choices.append(tile);
+    }
+    area.append(wordCard(word, false, false, () => play(word[0], message)), display, choices);
+  }
+  root.append(button('Начать', undefined, event => { event.currentTarget.hidden = true; draw(); }), area, message);
+}
+
+function write(root, done) {
+  const grid = make('div', '', 'grid two');
+  const message = status();
+  const selected = lesson.words.slice(0, 6);
+  const correct = new Set();
+  const normalize = text => text.trim().toLowerCase().replace(/\s+/g, ' ');
+  for (const word of selected) {
+    const card = make('form', '', 'card');
+    const input = make('input', '', 'field');
+    input.setAttribute('aria-label', 'Английское слово: ' + word[1]);
+    input.placeholder = 'Впиши слово';
+    input.autocomplete = 'off';
+    input.spellcheck = false;
+    input.lang = 'en';
+    input.required = true;
+    const check = make('button', 'Проверить', 'btn primary');
+    card.addEventListener('submit', event => {
+      event.preventDefault();
+      if (normalize(input.value) !== normalize(word[0])) {
+        message.textContent = 'Проверь написание и попробуй снова.';
+        return;
+      }
+      card.classList.add('good');
+      input.readOnly = true;
+      check.disabled = true;
+      correct.add(word);
+      message.textContent = 'Верно: ' + correct.size + ' / ' + selected.length;
+      if (correct.size === selected.length) done();
+    });
+    card.append(picture(word, true), input, check);
+    grid.append(card);
+  }
+  root.append(grid, message);
+}
+
+function book(root, done) {
+  const checklist = [
+    ['Pupil’s Book · стр. ' + bookPages[lessonIndex], 'Найди на странице знакомые картинки. Покажи их и назови не меньше трёх слов по-английски.'],
+    ['В тетради', 'Нарисуй два предмета или действия из урока и подпиши их по-английски.'],
+    ['Скажи вслух', lesson.speak]
+  ];
+  const marked = new Set(progress.bookTasks || []);
+  checklist.forEach(([title, instruction], index) => {
+    const label = make('label', '', 'book-task');
+    const box = make('input');
+    box.type = 'checkbox';
+    box.checked = marked.has(index);
+    box.addEventListener('change', () => {
+      if (box.checked) marked.add(index);
+      else marked.delete(index);
+      progress.bookTasks = [...marked];
+      done(marked.size === checklist.length);
+    });
+    label.append(make('strong', title), make('p', instruction), box, 'Сделано');
+    root.append(label);
+  });
+}
+
+const activities = {words, listen, chant:sequence, song:(root, done) => sequence(root, done, true),
+  grammar, know, memo, spell, write, book};
+
+function renderLesson() {
+  document.body.classList.add('lesson-mode');
+  document.title = lesson.title + ' · Give Me Five! 1';
+  const top = make('div', '', 'top');
+  const dots = make('nav', '', 'dots');
+  dots.setAttribute('aria-label', 'Слайды урока');
+  top.append(brand(), dots);
+  const stack = make('div', '', 'deck');
+  const nav = make('nav', '', 'nav');
+  nav.setAttribute('aria-label', 'Переход между слайдами');
+  const previous = button('← Назад', 'btn ghost', () => show(current - 1));
+  const next = button('Дальше →', undefined, () => show(current + 1));
+  const count = make('span');
+  nav.append(previous, count, next);
+  const bubbles = make('div', '', 'bubbles');
+  bubbles.setAttribute('aria-hidden', 'true');
+  for (const [index, size] of [46, 32, 58, 42, 50].entries()) {
+    const bubble = make('i');
+    bubble.style.cssText = '--size:' + size + 'px;--left:' + (8 + index * 20) +
+      '%;--time:' + (15 + index * 2) + 's;--delay:-' + (index + 2) + 's';
+    bubbles.append(bubble);
+  }
+  content.append(bubbles, top, stack, nav);
+
+  function slide(title, classes, stepNumber) {
+    const panel = make('section', '', 'slide ' + classes);
+    const inner = make('div', '', 'slide-inner');
+    const heading = make(stepNumber ? 'h2' : title === lesson.title ? 'h1' : 'h2');
+    heading.tabIndex = -1;
+    if (stepNumber) heading.append(make('span', String(stepNumber), 'n'));
+    if (title === lesson.title) heading.lang = 'en';
+    heading.append(title);
+    inner.append(heading);
+    panel.append(inner);
+    stack.append(panel);
+    return {panel, inner, heading};
+  }
+
+  const cover = slide(lesson.title, 'cover');
+  const owl = make('img');
+  owl.src = 'g-l9/img/speaky.png';
+  owl.alt = 'Окси';
+  cover.inner.prepend(owl);
+  const plan = make('div', '', 'plan');
+  const coverMessage = status();
+  const coverActions = make('div', '', 'actions');
+  coverActions.append(button('Начать →', undefined, () => show(1)), copy(lessonUrl(lesson), coverMessage));
+  cover.inner.append(make('p', 'Give Me Five! 1 · ' + (lessonIndex ? 'Unit ' + lessonIndex : 'Starter'), 'sub'),
+    make('span', '📖 Pupil’s Book · стр. ' + bookPages[lessonIndex], 'pill'), plan, coverActions, coverMessage);
+  const practice = activeSteps.map(([key, title, hint], index) => {
+    const item = slide(title, '', index + 1);
+    item.inner.append(make('p', hint, 'hint'));
+    const planButton = button(title, 'btn ghost', () => show(index + 1));
+    plan.append(planButton);
+    activities[key](item.inner, (complete = true) => {
+      progress[key] = complete;
+      save();
+      paint();
+    });
+    return {...item, key, planButton};
+  });
+
+  const finish = slide('Урок пройден?', 'finish');
+  const stars = make('div', '', 'stars');
+  stars.setAttribute('aria-hidden', 'true');
+  finish.inner.prepend(stars);
+  const finishHint = make('p', 'Выполни хотя бы пять заданий и отметь прохождение урока.');
+  const finishMessage = status();
+  const progressCount = status();
+  const finishActions = make('div', '', 'actions');
+  const completeLesson = button('🎉 Я сделал!', undefined, () => {
+    if (practice.filter(({key}) => progress[key]).length < 5) {
+      finishMessage.textContent = 'Выполни хотя бы пять заданий, чтобы отметить урок.';
+      return;
+    }
+    progress.finished = true;
+    save();
+    completeLesson.disabled = true;
+    finishMessage.textContent = '🎉 Молодец! Урок отмечен на этом устройстве.';
+  });
+  if (progress.finished) {
+    finishMessage.textContent = '🎉 Урок уже отмечен на этом устройстве.';
+    completeLesson.disabled = true;
+  }
+  finishActions.append(completeLesson);
+  finish.inner.append(progressCount, finishHint, finishActions, finishMessage, link('К списку уроков', './', 'btn ghost'));
+
+  const panels = [cover, ...practice, finish];
+  let current = 0;
+  const indicators = panels.map((item, index) => {
+    const dot = button('', 'dot', () => show(index));
+    dot.setAttribute('aria-label', item.heading.textContent);
+    dots.append(dot);
+    return dot;
+  });
+  function paint() {
+    const done = practice.filter(({key}) => progress[key]).length;
+    progressCount.textContent = 'Выполнено заданий: ' + done + ' из ' + practice.length;
+    stars.replaceChildren(...practice.map(({key}) => make('span', '★', progress[key] ? 'is-done' : '')));
+    practice.forEach(({key, panel, heading, planButton}, index) => {
+      const complete = Boolean(progress[key]);
+      panel.classList.toggle('is-done', complete);
+      planButton.classList.toggle('is-done', complete);
+      indicators[index + 1].classList.toggle('is-done', complete);
+      heading.querySelector('.n').textContent = complete ? '✓' : String(index + 1);
+    });
+  }
+
+  function show(index, focus = true) {
+    if (index < 0 || index >= panels.length) return;
+    stopAudio();
+    current = index;
+    panels.forEach(({panel}, i) => {
+      panel.hidden = i !== index;
+      indicators[i].classList.toggle('is-current', i === index);
+      indicators[i].setAttribute('aria-current', i === index ? 'step' : 'false');
+    });
+    previous.style.visibility = index === 0 ? 'hidden' : '';
+    next.style.visibility = index === panels.length - 1 ? 'hidden' : '';
+    count.textContent = index > 0 && index <= practice.length ? index + ' / ' + practice.length : '';
+    if (focus) panels[index].heading.focus({preventScroll:true});
+  }
+
+  let touch;
+  stack.addEventListener('touchstart', event => {
+    if (event.touches.length !== 1 || event.target.closest('input')) return;
+    const point = event.touches[0];
+    touch = {x:point.clientX, y:point.clientY};
+  }, {passive:true});
+  stack.addEventListener('touchend', event => {
+    if (!touch) return;
+    const point = event.changedTouches[0];
+    const dx = point.clientX - touch.x;
+    if (Math.abs(dx) > 65 && Math.abs(dx) > Math.abs(point.clientY - touch.y) * 1.5) show(current + (dx < 0 ? 1 : -1));
+    touch = undefined;
+  }, {passive:true});
+  stack.addEventListener('touchcancel', () => { touch = undefined; }, {passive:true});
+  document.addEventListener('keydown', event => {
+    if (event.target.closest('input, textarea, select') || event.altKey || event.ctrlKey || event.metaKey) return;
+    if (event.key === 'ArrowLeft') show(current - 1);
+    if (event.key === 'ArrowRight') show(current + 1);
+  });
+  paint();
+  show(0, false);
+}
+
+if (lesson) renderLesson();
 else renderCatalog();
