@@ -1,0 +1,72 @@
+:root {
+  --blue: #1f3fa8;
+  --deep: #132661;
+  --sky: #eaf0ff;
+  --line: #dce4fa;
+  --muted: #4e5b7d;
+  --sun: #f5c842;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  color: var(--deep);
+  background: linear-gradient(#eaf0ff, #fff 65%);
+  min-height: 100vh;
+  font: 500 1rem/1.5 Nunito, system-ui, sans-serif;
+}
+.wrap { width: min(100%, 45rem); margin: auto; padding: 1rem 1rem 3rem; }
+header { text-align: center; margin: 0 0 1.5rem; }
+header img { object-fit: contain; }
+h1, h2, .unit-title { font-family: "Baloo 2", system-ui, sans-serif; font-weight: 800; }
+h1 { font-size: clamp(2rem, 7vw, 3.25rem); line-height: 1.1; margin: .2em 0; }
+h2 { margin: 0 0 .5rem; font-size: 1.5rem; }
+p { margin: .35em 0 .75em; }
+.brand { color: var(--blue); font-weight: 800; }
+.back, a { color: var(--blue); }
+.catalog, .words { display: grid; gap: .65rem; }
+.unit, .card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 1.25rem;
+  box-shadow: 0 2px var(--line);
+  padding: 1rem;
+}
+.unit {
+  display: grid;
+  grid-template-columns: minmax(3.75rem, auto) 1fr auto;
+  align-items: center;
+  gap: .65rem;
+  text-decoration: none;
+}
+.unit:hover { border-color: var(--blue); }
+.unit-label { background: var(--sun); border-radius: .6rem; padding: .3em .5em; text-align: center; font-weight: 800; }
+.unit-title, .unit-topic { display: block; }
+.unit-title { font-size: 1.25rem; line-height: 1.2; }
+.unit-topic { color: var(--muted); }
+.card { margin-bottom: 1rem; }
+.words { grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); }
+button {
+  min-height: 44px;
+  padding: .45rem .7rem;
+  border: 1px solid var(--line);
+  border-radius: .75rem;
+  background: var(--sky);
+  color: var(--deep);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  text-align: left;
+}
+button small { display: block; color: var(--muted); font-weight: 500; }
+button:hover { border-color: var(--blue); }
+button[aria-pressed="true"] { border-color: var(--blue); box-shadow: inset 0 0 0 1px var(--blue); }
+:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+.dialogue { display: grid; gap: .4rem; }
+.question { border: 0; padding: 0; margin: 0 0 1rem; min-width: 0; }
+legend { padding: 0; margin-bottom: .45rem; font-weight: 800; }
+.choices { display: flex; flex-wrap: wrap; gap: .45rem; }
+.feedback { min-height: 1.5em; margin: .35rem 0 0; }
+.feedback.correct { color: #17613e; }
+.feedback.retry { color: #8c381a; }
+.primary { background: var(--blue); color: #fff; }
